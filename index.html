@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Recordatorios</title>
+
+  <!-- PWA Manifest Embebido mediante Data URI -->
+  <link rel="manifest" id="pwaManifest" href="data:application/json;base64,ewogICJuYW1lIjogIlJlY29yZGF0b3Jpb3MiLAogICJzaG9ydF9uYW1lIjogIlJlY29yZGF0b3Jpb3MiLAogICJzdGFydF91cmwiOiAiLi8iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMwZjE3MmEiLAogICJ0aGVtZV9jb2xvcIjogIiM2MzY2ZjEiLAogICJpY29ucyI6IFsKICAgIHsKICAgICAgInNyYyI6ICJodHRwczovL2Nkbi1pY29ucy1wbmcuZmxhdGljb24uY29tLzUxMi8zMjM5LzMyMzk5NTIucG5nIiwKICAgICAgInNpemVzIjogIjE5MngxOTIiLAogICAgICAidHlwZSI6ICJpbWFnZS9wbmciCiAgICB9LAogICAgewogICAgICAic3JjIjogImh0dHBzL2Nkbi1pY29ucy1wbmcuZmxhdGljb24uY29tLzUxMi8zMjM5LzMyMzk5NTIucG5nIiwKICAgICAgInNpemVzIjogIjUxMng1MTIiLAogICAgICAidHlwZSI6ICJpbWFnZS9wbmciCiAgICB9CiAgXQp9">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Recordatorios">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3239/3239952.png">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Tone.js para Alertas Sonoras -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Scrollbars y Efectos de Cristal */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(156, 163, 175, 0.4);
+      border-radius: 9999px;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .dark .glass {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-full font-sans transition-colors duration-200 antialiased selection:bg-brand-500 selection:text-white pb-20">
+
+  <!-- Navegación Superior -->
+  <header class="sticky top-0 z-30 glass border-b border-slate-200/80 dark:border-slate-800 px-4 py-3 sm:px-6">
+    <div class="max-w-5xl mx-auto flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+          <i class="fa-solid fa-bell text-lg"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-xl leading-none bg-gradient-to-r from-brand-600 to-indigo-500 dark:from-indigo-400 dark:to-brand-400 bg-clip-text text-transparent">Recordatorios</h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Gestión Personal de Tareas</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <!-- Botón de Notificaciones -->
+        <button id="notifBtn" onclick="requestNotificationPermission()" class="p-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition relative" title="Activar Notificaciones">
+          <i class="fa-regular fa-bell text-lg"></i>
+          <span id="notifDot" class="absolute top-2 right-2 w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
+        </button>
+
+        <!-- Botón Modo Oscuro -->
+        <button id="themeToggleBtn" onclick="toggleDarkMode()" class="p-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition" title="Cambiar Tema">
+          <i id="themeIcon" class="fa-regular fa-moon text-lg"></i>
+        </button>
+
+        <!-- Botón de Instalación PWA (Header) -->
+        <button id="headerInstallBtn" onclick="triggerPWAInstall()" class="hidden sm:flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl transition shadow-sm shadow-brand-500/30">
+          <i class="fa-solid fa-download"></i> Instalar App
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Banner Flotante de Instalación PWA (Móviles / Navegadores compatibles) -->
+  <div id="pwaBanner" class="hidden max-w-5xl mx-auto px-4 mt-4">
+    <div class="bg-gradient-to-r from-brand-600 to-indigo-600 text-white rounded-2xl p-4 shadow-lg flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="p-3 bg-white/10 rounded-xl backdrop-blur-sm shrink-0">
+          <i class="fa-solid fa-mobile-screen-button text-2xl"></i>
+        </div>
+        <div>
+          <h2 class="font-bold text-sm">Instala la App de Recordatorios</h2>
+          <p class="text-xs text-brand-100">Accede directamente desde tu pantalla de inicio y recibe tus alertas.</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button onclick="triggerPWAInstall()" class="bg-white text-brand-700 hover:bg-brand-50 text-xs font-bold px-3 py-2 rounded-xl transition">
+          Instalar
+        </button>
+        <button onclick="dismissPWABanner()" class="text-brand-200 hover:text-white p-2">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- Tarjetas de Resumen Estadístico -->
+    <section class="grid grid-cols-3 gap-3 sm:gap-4">
+      <div class="bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-700/60 shadow-sm">
+        <div class="flex justify-between items-center text-slate-500 dark:text-slate-400">
+          <span class="text-xs font-medium">Total</span>
+          <i class="fa-solid fa-list-check text-brand-500"></i>
+        </div>
+        <span id="statTotal" class="text-2xl font-bold mt-2 block">0</span>
+      </div>
+
+      <div class="bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-700/60 shadow-sm">
+        <div class="flex justify-between items-center text-amber-500">
+          <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Hoy</span>
+          <i class="fa-regular fa-clock"></i>
+        </div>
+        <span id="statToday" class="text-2xl font-bold mt-2 block">0</span>
+      </div>
+
+      <div class="bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-700/60 shadow-sm">
+        <div class="flex justify-between items-center text-emerald-500">
+          <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Completados</span>
+          <i class="fa-regular fa-circle-check"></i>
+        </div>
+        <span id="statCompleted" class="text-2xl font-bold mt-2 block">0</span>
+      </div>
+    </section>
+
+    <!-- Contenido Principal (Formulario + Lista) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Formulario para Crear / Editar Recordatorio -->
+      <section class="lg:col-span-5">
+        <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-5 border border-slate-200/70 dark:border-slate-700/60 shadow-sm space-y-4">
+          <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700/50 pb-3">
+            <h2 id="formTitle" class="font-bold text-base flex items-center gap-2">
+              <i class="fa-solid fa-plus-circle text-brand-600 dark:text-brand-400"></i> Nuevo Recordatorio
+            </h2>
+            <button id="cancelEditBtn" onclick="resetForm()" class="hidden text-xs text-rose-500 hover:underline font-semibold">
+              Cancelar edición
+            </button>
+          </div>
+
+          <form id="reminderForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
+            <input type="hidden" id="reminderId">
+
+            <!-- Título -->
+            <div>
+              <label for="title" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Título</label>
+              <input type="text" id="title" required placeholder="Ej. Pagar servicios o cita médica" 
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm transition">
+            </div>
+
+            <!-- Categoría y Prioridad -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="category" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Categoría</label>
+                <select id="category" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm transition">
+                  <option value="Personal">👤 Personal</option>
+                  <option value="Trabajo">💼 Trabajo</option>
+                  <option value="Salud">🏥 Salud</option>
+                  <option value="Finanzas">💰 Finanzas</option>
+                  <option value="Otro">📌 Otro</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="priority" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Prioridad</label>
+                <select id="priority" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm transition">
+                  <option value="Baja">🟢 Baja</option>
+                  <option value="Media" selected>🟡 Media</option>
+                  <option value="Alta">🔴 Alta</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Fecha y Hora -->
+            <div>
+              <label for="datetime" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Fecha y Hora</label>
+              <input type="datetime-local" id="datetime" required 
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm transition">
+            </div>
+
+            <!-- Notas Opcionales -->
+            <div>
+              <label for="notes" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Notas Opcionales</label>
+              <textarea id="notes" rows="2" placeholder="Detalles adicionales, enlaces o notas..." 
+                class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm transition"></textarea>
+            </div>
+
+            <button type="submit" id="submitBtn" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-xl shadow-md shadow-brand-500/20 transition active:scale-[0.99] flex items-center justify-center gap-2 text-sm">
+              <i class="fa-solid fa-bell"></i> Guardar Recordatorio
+            </button>
+          </form>
+        </div>
+
+        <!-- Herramientas de Respaldo JSON -->
+        <div class="mt-4 bg-white dark:bg-slate-800/80 rounded-2xl p-4 border border-slate-200/70 dark:border-slate-700/60 shadow-sm flex items-center justify-between gap-2">
+          <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Copia de Seguridad:</span>
+          <div class="flex items-center gap-2">
+            <button onclick="exportData()" class="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 transition flex items-center gap-1">
+              <i class="fa-solid fa-download text-brand-500"></i> Exportar
+            </button>
+            <label class="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer flex items-center gap-1">
+              <i class="fa-solid fa-upload text-indigo-500"></i> Importar
+              <input type="file" id="importFile" onchange="importData(event)" accept=".json" class="hidden">
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- Lista de Recordatorios y Filtros -->
+      <section class="lg:col-span-7 space-y-4">
+        
+        <!-- Barra de Búsqueda y Filtros -->
+        <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-4 border border-slate-200/70 dark:border-slate-700/60 shadow-sm space-y-3">
+          
+          <!-- Búsqueda -->
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+            <input type="text" id="searchInput" oninput="render()" placeholder="Buscar por título o notas..." 
+              class="w-full pl-9 pr-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 text-xs transition">
+          </div>
+
+          <!-- Filtros de Categoría -->
+          <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
+            <button onclick="setFilter('category', 'all')" class="filter-cat-btn px-3 py-1.5 rounded-lg bg-brand-600 text-white font-medium transition shrink-0" data-val="all">Todas</button>
+            <button onclick="setFilter('category', 'Personal')" class="filter-cat-btn px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium transition hover:bg-slate-200 dark:hover:bg-slate-600 shrink-0" data-val="Personal">Personal</button>
+            <button onclick="setFilter('category', 'Trabajo')" class="filter-cat-btn px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium transition hover:bg-slate-200 dark:hover:bg-slate-600 shrink-0" data-val="Trabajo">Trabajo</button>
+            <button onclick="setFilter('category', 'Salud')" class="filter-cat-btn px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium transition hover:bg-slate-200 dark:hover:bg-slate-600 shrink-0" data-val="Salud">Salud</button>
+            <button onclick="setFilter('category', 'Finanzas')" class="filter-cat-btn px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium transition hover:bg-slate-200 dark:hover:bg-slate-600 shrink-0" data-val="Finanzas">Finanzas</button>
+            <button onclick="setFilter('category', 'Otro')" class="filter-cat-btn px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium transition hover:bg-slate-200 dark:hover:bg-slate-600 shrink-0" data-val="Otro">Otro</button>
+          </div>
+
+          <!-- Selectores de Orden y Estado -->
+          <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-700/50 pt-2 text-xs">
+            <div class="flex items-center gap-2">
+              <span class="text-slate-400">Estado:</span>
+              <select id="statusFilter" onchange="setFilter('status', this.value)" class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg px-2 py-1 font-medium border-none focus:ring-0 cursor-pointer">
+                <option value="pending">⏳ Pendientes</option>
+                <option value="completed">✅ Completados</option>
+                <option value="all">📋 Todos</option>
+              </select>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <span class="text-slate-400">Ordenar:</span>
+              <select id="sortBy" onchange="render()" class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg px-2 py-1 font-medium border-none focus:ring-0 cursor-pointer">
+                <option value="datetime">🕒 Fecha y Hora</option>
+                <option value="priority">🔥 Prioridad</option>
+              </select>
+            </div>
+
+            <button onclick="clearCompleted()" class="text-rose-500 hover:underline font-semibold ml-auto">
+              Limpiar completados
+            </button>
+          </div>
+        </div>
+
+        <!-- Contenedor Dinámico de Tarjetas -->
+        <div id="reminderList" class="space-y-3">
+          <!-- Se completa mediante JS -->
+        </div>
+
+        <!-- Estado Vacío -->
+        <div id="emptyState" class="hidden bg-white dark:bg-slate-800/40 rounded-2xl p-8 border border-slate-200/70 dark:border-slate-700/60 text-center space-y-3">
+          <div class="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mx-auto text-slate-400">
+            <i class="fa-regular fa-folder-open text-xl"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-slate-700 dark:text-slate-300">No hay recordatorios</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Crea un recordatorio nuevo o cambia los parámetros de búsqueda.</p>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Modal Diálogo de Alarma Programada -->
+  <div id="alarmModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl border border-slate-100 dark:border-slate-700 animate-bounce">
+      <div class="w-16 h-16 bg-amber-100 dark:bg-amber-900/40 text-amber-500 rounded-full flex items-center justify-center mx-auto text-2xl">
+        <i class="fa-solid fa-bell ring-4 ring-amber-500/20 rounded-full"></i>
+      </div>
+      <div>
+        <span id="alarmCategory" class="text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">Categoría</span>
+        <h3 id="alarmTitle" class="text-lg font-bold text-slate-800 dark:text-slate-100 mt-1">¡Recordatorio Activado!</h3>
+        <p id="alarmNotes" class="text-xs text-slate-500 dark:text-slate-400 mt-1 hidden"></p>
+        <p id="alarmTime" class="text-xs font-medium text-slate-400 mt-2"></p>
+      </div>
+      <button onclick="stopAlarm()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-brand-500/20 text-sm">
+        Aceptar y Silenciar
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Estado Global de la App
+    let reminders = [];
+    let currentCategoryFilter = 'all';
+    let currentStatusFilter = 'pending';
+    let deferredPrompt = null;
+    let synth = null;
+
+    // Inicialización al cargar la ventana
+    window.addEventListener('DOMContentLoaded', () => {
+      loadTheme();
+      loadReminders();
+      setupPWA();
+      setupDateTimeDefault();
+      
+      // Comprobación periódica cada 5 segundos
+      setInterval(checkReminders, 5000);
+    });
+
+    // Control del Tema Oscuro/Claro
+    function loadTheme() {
+      if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+        document.getElementById('themeIcon').className = 'fa-regular fa-sun text-lg';
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.getElementById('themeIcon').className = 'fa-regular fa-moon text-lg';
+      }
+    }
+
+    function toggleDarkMode() {
+      if (document.documentElement.classList.contains('dark')) {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+        document.getElementById('themeIcon').className = 'fa-regular fa-moon text-lg';
+      } else {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+        document.getElementById('themeIcon').className = 'fa-regular fa-sun text-lg';
+      }
+    }
+
+    // Configuración por defecto del selector de fecha/hora
+    function setupDateTimeDefault() {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      document.getElementById('datetime').value = now.toISOString().slice(0, 16);
+    }
+
+    // Registro de Service Worker embebido y PWA Event Listeners
+    function setupPWA() {
+      if ('serviceWorker' in navigator) {
+        const swCode = `
+          const CACHE = 'recordatorios-cache-v1';
+          self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./']))));
+          self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
+        `;
+        const blob = new Blob([swCode], { type: 'application/javascript' });
+        const swUrl = URL.createObjectURL(blob);
+        navigator.serviceWorker.register(swUrl).catch(err => console.log('Error SW:', err));
+      }
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        document.getElementById('pwaBanner').classList.remove('hidden');
+        document.getElementById('headerInstallBtn').classList.remove('hidden');
+      });
+    }
+
+    function triggerPWAInstall() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choice) => {
+          if (choice.outcome === 'accepted') {
+            dismissPWABanner();
+          }
+          deferredPrompt = null;
+        });
+      } else {
+        alert('Para instalar en iOS: Pulsa el botón "Compartir" de Safari y elige "Añadir a la pantalla de inicio". En escritorio o Android: Selecciona "Instalar Aplicación" en el menú del navegador.');
+      }
+    }
+
+    function dismissPWABanner() {
+      document.getElementById('pwaBanner').classList.add('hidden');
+    }
+
+    // Solicitar Permiso de Notificaciones Web
+    function requestNotificationPermission() {
+      if ('Notification' in window) {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            document.getElementById('notifDot').classList.add('hidden');
+            alert('¡Notificaciones activadas!');
+          } else {
+            alert('Permiso de notificaciones denegado.');
+          }
+        });
+      } else {
+        alert('Este navegador no soporta notificaciones del sistema.');
+      }
+    }
+
+    // Almacenamiento Local y Operaciones CRUD
+    function loadReminders() {
+      const data = localStorage.getItem('recordatorios_data');
+      reminders = data ? JSON.parse(data) : getSampleData();
+      render();
+    }
+
+    function saveReminders() {
+      localStorage.setItem('recordatorios_data', JSON.stringify(reminders));
+      render();
+    }
+
+    function getSampleData() {
+      const now = new Date();
+      const inTenMin = new Date(now.getTime() + 10 * 60000);
+      return [
+        {
+          id: '1',
+          title: 'Revisión del proyecto Recordatorios',
+          category: 'Trabajo',
+          priority: 'Alta',
+          datetime: inTenMin.toISOString().slice(0, 16),
+          notes: 'Verificar instalación PWA y notificaciones.',
+          completed: false,
+          notified: false
+        },
+        {
+          id: '2',
+          title: 'Tomar vaso de agua y descansar',
+          category: 'Salud',
+          priority: 'Media',
+          datetime: now.toISOString().slice(0, 16),
+          notes: '',
+          completed: false,
+          notified: false
+        }
+      ];
+    }
+
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('reminderId').value;
+      const title = document.getElementById('title').value.trim();
+      const category = document.getElementById('category').value;
+      const priority = document.getElementById('priority').value;
+      const datetime = document.getElementById('datetime').value;
+      const notes = document.getElementById('notes').value.trim();
+
+      if (!title || !datetime) return;
+
+      if (id) {
+        // Editar existente
+        const idx = reminders.findIndex(r => r.id === id);
+        if (idx !== -1) {
+          reminders[idx] = { ...reminders[idx], title, category, priority, datetime, notes, notified: false };
+        }
+      } else {
+        // Crear nuevo
+        const item = {
+          id: Date.now().toString(),
+          title,
+          category,
+          priority,
+          datetime,
+          notes,
+          completed: false,
+          notified: false
+        };
+        reminders.push(item);
+      }
+
+      saveReminders();
+      resetForm();
+    }
+
+    function editReminder(id) {
+      const item = reminders.find(r => r.id === id);
+      if (!item) return;
+
+      document.getElementById('reminderId').value = item.id;
+      document.getElementById('title').value = item.title;
+      document.getElementById('category').value = item.category;
+      document.getElementById('priority').value = item.priority;
+      document.getElementById('datetime').value = item.datetime;
+      document.getElementById('notes').value = item.notes || '';
+
+      document.getElementById('formTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-brand-600"></i> Editar Recordatorio';
+      document.getElementById('submitBtn').innerHTML = '<i class="fa-solid fa-rotate"></i> Actualizar Recordatorio';
+      document.getElementById('cancelEditBtn').classList.remove('hidden');
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetForm() {
+      document.getElementById('reminderForm').reset();
+      document.getElementById('reminderId').value = '';
+      document.getElementById('formTitle').innerHTML = '<i class="fa-solid fa-plus-circle text-brand-600"></i> Nuevo Recordatorio';
+      document.getElementById('submitBtn').innerHTML = '<i class="fa-solid fa-bell"></i> Guardar Recordatorio';
+      document.getElementById('cancelEditBtn').classList.add('hidden');
+      setupDateTimeDefault();
+    }
+
+    function toggleComplete(id) {
+      const item = reminders.find(r => r.id === id);
+      if (item) {
+        item.completed = !item.completed;
+        saveReminders();
+      }
+    }
+
+    function deleteReminder(id) {
+      reminders = reminders.filter(r => r.id !== id);
+      saveReminders();
+    }
+
+    function clearCompleted() {
+      reminders = reminders.filter(r => !r.completed);
+      saveReminders();
+    }
+
+    function setFilter(type, val) {
+      if (type === 'category') {
+        currentCategoryFilter = val;
+        document.querySelectorAll('.filter-cat-btn').forEach(btn => {
+          if (btn.dataset.val === val) {
+            btn.className = 'filter-cat-btn px-3 py-1.5 rounded-lg bg-brand-600 text-white font-medium transition shrink-0';
+          } else {
+            btn.className = 'filter-cat-btn px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium transition hover:bg-slate-200 dark:hover:bg-slate-600 shrink-0';
+          }
+        });
+      } else if (type === 'status') {
+        currentStatusFilter = val;
+      }
+      render();
+    }
+
+    // Renderizado UI
+    function render() {
+      const listContainer = document.getElementById('reminderList');
+      const emptyState = document.getElementById('emptyState');
+      const searchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
+      const sortBy = document.getElementById('sortBy').value;
+
+      // Actualizar Estadísticas
+      const todayStr = new Date().toISOString().slice(0, 10);
+      document.getElementById('statTotal').innerText = reminders.length;
+      document.getElementById('statCompleted').innerText = reminders.filter(r => r.completed).length;
+      document.getElementById('statToday').innerText = reminders.filter(r => r.datetime.startsWith(todayStr) && !r.completed).length;
+
+      // Filtrado
+      let filtered = reminders.filter(r => {
+        const matchesCategory = currentCategoryFilter === 'all' || r.category === currentCategoryFilter;
+        let matchesStatus = true;
+        if (currentStatusFilter === 'pending') matchesStatus = !r.completed;
+        if (currentStatusFilter === 'completed') matchesStatus = r.completed;
+
+        const matchesSearch = r.title.toLowerCase().includes(searchQuery) || (r.notes && r.notes.toLowerCase().includes(searchQuery));
+
+        return matchesCategory && matchesStatus && matchesSearch;
+      });
+
+      // Ordenamiento
+      const priorityWeight = { 'Alta': 3, 'Media': 2, 'Baja': 1 };
+      filtered.sort((a, b) => {
+        if (sortBy === 'priority') {
+          return priorityWeight[b.priority] - priorityWeight[a.priority];
+        }
+        return new Date(a.datetime) - new Date(b.datetime);
+      });
+
+      listContainer.innerHTML = '';
+
+      if (filtered.length === 0) {
+        emptyState.classList.remove('hidden');
+      } else {
+        emptyState.classList.add('hidden');
+        filtered.forEach(item => {
+          listContainer.appendChild(createReminderCard(item));
+        });
+      }
+    }
+
+    function createReminderCard(item) {
+      const div = document.createElement('div');
+      const isPast = new Date(item.datetime) < new Date() && !item.completed;
+
+      div.className = `bg-white dark:bg-slate-800/90 rounded-2xl p-4 border transition-all ${
+        item.completed 
+          ? 'opacity-60 border-slate-200 dark:border-slate-700/40' 
+          : isPast 
+            ? 'border-rose-300 dark:border-rose-900/50 bg-rose-50/20' 
+            : 'border-slate-200/80 dark:border-slate-700/70 shadow-sm hover:border-brand-300'
+      } flex items-start justify-between gap-3`;
+
+      const priorityColors = {
+        'Alta': 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border-rose-200',
+        'Media': 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 border-amber-200',
+        'Baja': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200'
+      };
+
+      const categoryIcons = {
+        'Personal': 'fa-user',
+        'Trabajo': 'fa-briefcase',
+        'Salud': 'fa-heart-pulse',
+        'Finanzas': 'fa-wallet',
+        'Otro': 'fa-bookmark'
+      };
+
+      const formattedDate = new Date(item.datetime).toLocaleString('es-ES', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      div.innerHTML = `
+        <div class="flex items-start gap-3 w-full">
+          <button onclick="toggleComplete('${item.id}')" class="mt-1 text-xl text-slate-300 dark:text-slate-600 hover:text-emerald-500 transition shrink-0">
+            <i class="${item.completed ? 'fa-solid fa-circle-check text-emerald-500' : 'fa-regular fa-circle'}"></i>
+          </button>
+
+          <div class="space-y-1.5 flex-1 min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full border ${priorityColors[item.priority] || ''}">
+                ${item.priority}
+              </span>
+              <span class="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                <i class="fa-solid ${categoryIcons[item.category] || 'fa-tag'}"></i> ${item.category}
+              </span>
+            </div>
+
+            <h3 class="font-semibold text-sm leading-snug break-words ${item.completed ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-100'}">
+              ${escapeHtml(item.title)}
+            </h3>
+
+            ${item.notes ? `<p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">${escapeHtml(item.notes)}</p>` : ''}
+
+            <p class="text-xs flex items-center gap-1.5 ${isPast ? 'text-rose-500 font-semibold' : 'text-slate-500 dark:text-slate-400'}">
+              <i class="fa-regular fa-clock"></i> ${formattedDate} ${isPast ? '(Vencido)' : ''}
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1 shrink-0">
+          <button onclick="editReminder('${item.id}')" class="p-2 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
+            <i class="fa-regular fa-pen-to-square"></i>
+          </button>
+          <button onclick="deleteReminder('${item.id}')" class="p-2 text-slate-400 hover:text-rose-600 transition rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
+            <i class="fa-regular fa-trash-can"></i>
+          </button>
+        </div>
+      `;
+
+      return div;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Monitorización de Horarios en Tiempo Real
+    function checkReminders() {
+      const now = new Date();
+
+      reminders.forEach(item => {
+        if (item.completed || item.notified) return;
+
+        const reminderTime = new Date(item.datetime);
+
+        if (now >= reminderTime && (now - reminderTime) < 120000) {
+          item.notified = true;
+          triggerAlarm(item);
+          saveReminders();
+        }
+      });
+    }
+
+    // Activación de Alerta
+    function triggerAlarm(item) {
+      // 1. Audio con Tone.js
+      try {
+        if (Tone.context.state !== 'running') {
+          Tone.start();
+        }
+        if (!synth) {
+          synth = new Tone.Synth().toDestination();
+        }
+        synth.triggerAttackRelease("E5", "8n");
+        setTimeout(() => synth.triggerAttackRelease("A5", "8n"), 200);
+      } catch (e) {
+        console.log('Error de audio:', e);
+      }
+
+      // 2. Notificación del Sistema
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(`⏰ Recordatorio: ${item.title}`, {
+          body: `Categoría: ${item.category} | Prioridad: ${item.priority}`,
+          icon: 'https://cdn-icons-png.flaticon.com/512/3239/3239952.png'
+        });
+      }
+
+      // 3. Diálogo Modal
+      document.getElementById('alarmCategory').innerText = item.category;
+      document.getElementById('alarmTitle').innerText = item.title;
+      
+      const notesEl = document.getElementById('alarmNotes');
+      if (item.notes) {
+        notesEl.innerText = item.notes;
+        notesEl.classList.remove('hidden');
+      } else {
+        notesEl.classList.add('hidden');
+      }
+
+      document.getElementById('alarmTime').innerText = `Hora programada: ${new Date(item.datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+      document.getElementById('alarmModal').classList.remove('hidden');
+    }
+
+    function stopAlarm() {
+      document.getElementById('alarmModal').classList.add('hidden');
+    }
+
+    // Exportar e Importar Datos (JSON)
+    function exportData() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(reminders, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `recordatorios_backup_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function importData(event) {
+      const fileReader = new FileReader();
+      fileReader.onload = function(e) {
+        try {
+          const importedReminders = JSON.parse(e.target.result);
+          if (Array.isArray(importedReminders)) {
+            reminders = importedReminders;
+            saveReminders();
+            alert('¡Recordatorios importados exitosamente!');
+          } else {
+            alert('El archivo no tiene un formato válido.');
+          }
+        } catch (err) {
+          alert('Error al leer el archivo JSON.');
+        }
+      };
+      if (event.target.files[0]) {
+        fileReader.readAsText(event.target.files[0]);
+      }
+    }
+  </script>
+
+</body>
+</html>
